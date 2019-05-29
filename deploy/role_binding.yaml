@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kni-operator
+subjects:
+- kind: ServiceAccount
+  name: kni-operator
+roleRef:
+  kind: Role
+  name: kni-operator
+  apiGroup: rbac.authorization.k8s.io

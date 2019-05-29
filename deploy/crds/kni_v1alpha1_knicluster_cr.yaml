@@ -1,0 +1,6 @@
+apiVersion: kni.openshift.com/v1alpha1
+kind: KNICluster
+metadata:
+  name: example-knicluster
+  namespace: kniops
+spec: {}
