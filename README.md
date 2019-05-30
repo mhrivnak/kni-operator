@@ -1,24 +1,47 @@
 # KNI Operator
 
-The goal of this operator is to
+**This is currently a Proof of Concept.**
+
+The goal of this operator is to:
 
 * Ensure a particular CatalogSource is available
 * Ensure Subscriptions exist to one or more operators in that CatalogSource
 * Ensure a CR exists for each operator so that it deploys its operand
 * Watch the ClusterVersion and change the CatalogSource to reference an image that corresponds to the current ClusterVersion
 
+The result enables a collection of operators to be released, installed and
+upgraded together via a CatalogSource at carefully-chosen and tested versions.
+A new CatalogSource gets created for each ClusterVersion, so that the operators
+can be tested on specific releases of OpenShift.
+
 ## Try It
+
+In this demo will you will:
+* Deploy the operator
+* See it deploy the etcd-operator from the associated CatalogSource
+* Increment the ClusterVersion
+* See the CatalogSource get changed based on the ClusterVersion, and then see the etcd-operator get upgraded.
+
+This demo utilizes a [simple catalog source
+image](https://quay.io/repository/mhrivnak/demo-operator-registry). It has two
+branches: [`1.0`](https://github.com/mhrivnak/demo-operator-registry/tree/1.0)
+and [`1.1`](https://github.com/mhrivnak/demo-operator-registry/tree/1.1). The
+latter adds version 0.9.4 of the etcd operator.
+
+All of the manifests in the catalog source image were copied straight from
+[operatorhub.io](http://operatorhub.io).
 
 ### Setup
 
-Install minikube.
+Start minikube.
 
 ```bash
 minikube start --kubernetes-version v1.13.6
 ```
 
 Install the Operator Lifecycle Manager. This command was copied straight from
-http://operatorhub.io. If you see errors, just run it a second time.
+[operatorhub.io](http://operatorhub.io). If you see errors, just run it a
+second time.
 
 ```bash
 kubectl create -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/olm.yaml
