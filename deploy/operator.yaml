@@ -29,5 +29,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: KNI_CLUSTER_NAME
+              value: "kni-cluster"
+            - name: KNI_CLUSTER_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: OPERATOR_NAME
               value: "kni-operator"
