@@ -3,6 +3,7 @@ package knicluster
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/go-logr/logr"
 	kniv1alpha1 "github.com/mhrivnak/kni-operator/pkg/apis/kni/v1alpha1"
@@ -25,8 +26,13 @@ import (
 
 var log = logf.Log.WithName("controller_knicluster")
 
-// FinalizerName is the finalizer value used on non-owned resources
-const FinalizerName = "knicluster.kni.openshift.com"
+const (
+	// FinalizerName is the finalizer value used on non-owned resources
+	FinalizerName          = "knicluster.kni.openshift.com"
+	KNIClusterNameEnv      = "KNI_CLUSTER_NAME"
+	KNIClusterNameDefault  = "kni-cluster"
+	KNIClusterNamespaceEnv = "KNI_CLUSTER_NAMESPACE"
+)
 
 // Add creates a new KNICluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -68,16 +74,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}
 	}
 
+	kni, err := getKNINamespacedName()
+	if err != nil {
+		return err
+	}
 	err = c.Watch(&source.Kind{Type: &osconfigv1.ClusterVersion{}}, &handler.EnqueueRequestsFromMapFunc{
 		ToRequests: handler.ToRequestsFunc(
 			// always enqueued the same KNICluster object, since there should be only one
 			func(a handler.MapObject) []reconcile.Request {
 				return []reconcile.Request{
-					// TODO get these values some other way
-					{NamespacedName: types.NamespacedName{
-						Name:      "example-knicluster",
-						Namespace: "kniops",
-					}},
+					{NamespacedName: kni},
 				}
 			}),
 	})
@@ -318,4 +324,23 @@ func newOperatorGroup(namespace string) *olmv1.OperatorGroup {
 			TargetNamespaces: []string{namespace},
 		},
 	}
+}
+
+func getKNINamespacedName() (types.NamespacedName, error) {
+	kni := types.NamespacedName{
+		Name: KNIClusterNameDefault,
+	}
+
+	// get name
+	if name, ok := os.LookupEnv(KNIClusterNameEnv); ok {
+		kni.Name = name
+	}
+
+	// get namespace
+	if namespace, ok := os.LookupEnv(KNIClusterNamespaceEnv); ok {
+		kni.Namespace = namespace
+	} else {
+		return kni, fmt.Errorf("%s unset or empty", KNIClusterNamespaceEnv)
+	}
+	return kni, nil
 }

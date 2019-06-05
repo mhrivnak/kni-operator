@@ -12,6 +12,7 @@ import (
 
 	"github.com/mhrivnak/kni-operator/pkg/apis"
 	"github.com/mhrivnak/kni-operator/pkg/controller"
+	"github.com/mhrivnak/kni-operator/pkg/controller/knicluster"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
@@ -63,6 +64,12 @@ func main() {
 	logf.SetLogger(zap.Logger())
 
 	printVersion()
+
+	// Check for namespace in env
+	if os.Getenv(knicluster.KNIClusterNamespaceEnv) == "" {
+		log.Error(fmt.Errorf("%s must be defined and not empty", knicluster.KNIClusterNamespaceEnv), "")
+		os.Exit(1)
+	}
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
