@@ -44,6 +44,7 @@ Install the Operator Lifecycle Manager. This command was copied straight from
 second time.
 
 ```bash
+kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/crds.yaml
 kubectl create -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/olm.yaml
 ```
 
