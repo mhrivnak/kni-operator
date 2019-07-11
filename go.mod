@@ -5,6 +5,7 @@ require (
 	github.com/Azure/go-autorest v11.5.2+incompatible // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/coreos/prometheus-operator v0.26.0 // indirect
+	github.com/djzager/operator-status v0.0.0-20190711161736-81970f6f0723
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.0 // indirect
@@ -19,7 +20,8 @@ require (
 	github.com/spf13/pflag v1.0.3
 	go.opencensus.io v0.19.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
-	k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
+	k8s.io/api v0.0.0-20190711103429-37c3b8b1ca65
+	k8s.io/apimachinery v0.0.0-20190711103026-7bf792636534
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/code-generator v0.0.0-20181203235156-f8cba74510f3
 	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
