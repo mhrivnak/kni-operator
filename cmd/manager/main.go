@@ -152,6 +152,13 @@ func main() {
 					Namespace: kniNamespacedName.Namespace,
 				},
 			})
+			if err != nil {
+				log.Error(err, "Failed to create KNI Cluster custom resource")
+				os.Exit(1)
+			}
+		} else {
+			log.Error(err, "")
+			os.Exit(1)
 		}
 	}
 
