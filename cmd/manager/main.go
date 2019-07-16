@@ -14,6 +14,7 @@ import (
 	"github.com/mhrivnak/kni-operator/pkg/controller"
 	"github.com/mhrivnak/kni-operator/pkg/controller/knicluster"
 
+	kniv1alpha1 "github.com/mhrivnak/kni-operator/pkg/apis/kni/v1alpha1"
 	osconfigv1 "github.com/openshift/api/config/v1"
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olm "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
@@ -23,6 +24,8 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -66,7 +69,8 @@ func main() {
 	printVersion()
 
 	// Check for namespace in env
-	if os.Getenv(knicluster.KNIClusterNamespaceEnv) == "" {
+	kniNamespacedName, err := knicluster.GetKNINamespacedName()
+	if err != nil {
 		log.Error(fmt.Errorf("%s must be defined and not empty", knicluster.KNIClusterNamespaceEnv), "")
 		os.Exit(1)
 	}
@@ -133,6 +137,29 @@ func main() {
 	_, err = metrics.ExposeMetricsPort(ctx, metricsPort)
 	if err != nil {
 		log.Info(err.Error())
+	}
+
+	// Create CR if it's not there
+	client := mgr.GetClient()
+	instance := &kniv1alpha1.KNICluster{}
+	err = client.Get(context.TODO(), kniNamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("Creating KNI Cluster Resource")
+			err = client.Create(context.TODO(), &kniv1alpha1.KNICluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kniNamespacedName.Name,
+					Namespace: kniNamespacedName.Namespace,
+				},
+			})
+			if err != nil {
+				log.Error(err, "Failed to create KNI Cluster custom resource")
+				os.Exit(1)
+			}
+		} else {
+			log.Error(err, "")
+			os.Exit(1)
+		}
 	}
 
 	log.Info("Starting the Cmd.")

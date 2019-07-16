@@ -74,7 +74,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}
 	}
 
-	kni, err := getKNINamespacedName()
+	kni, err := GetKNINamespacedName()
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func newOperatorGroup(namespace string) *olmv1.OperatorGroup {
 	}
 }
 
-func getKNINamespacedName() (types.NamespacedName, error) {
+func GetKNINamespacedName() (types.NamespacedName, error) {
 	kni := types.NamespacedName{
 		Name: KNIClusterNameDefault,
 	}
