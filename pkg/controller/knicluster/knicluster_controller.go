@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -127,13 +128,12 @@ func (r *ReconcileKNICluster) ensureOperatorGroup(instance *kniv1alpha1.KNIClust
 	// already exists - don't requeue
 	reqLogger.Info("OperatorGroup already exists", "OperatorGroup.Namespace", found.Namespace, "OperatorGroup.Name", found.Name)
 
+	objectRef, err := reference.GetReference(r.scheme, found)
+	if err != nil {
+		return err
+	}
 	// Add it to the list of RelatedObjects if found
-	objectreferences.SetObjectReference(&instance.Status.RelatedObjects, corev1.ObjectReference{
-		APIVersion: found.TypeMeta.APIVersion,
-		Kind:       found.TypeMeta.Kind,
-		Namespace:  found.Namespace,
-		Name:       found.Name,
-	})
+	objectreferences.SetObjectReference(&instance.Status.RelatedObjects, *objectRef)
 
 	return nil
 }
@@ -163,12 +163,12 @@ func (r *ReconcileKNICluster) ensureSubscription(instance *kniv1alpha1.KNICluste
 	reqLogger.Info("Subscription already exists", "Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
 
 	// Add it to the list of RelatedObjects if found
-	objectreferences.SetObjectReference(&instance.Status.RelatedObjects, corev1.ObjectReference{
-		APIVersion: found.TypeMeta.APIVersion,
-		Kind:       found.TypeMeta.Kind,
-		Namespace:  found.Namespace,
-		Name:       found.Name,
-	})
+	objectRef, err := reference.GetReference(r.scheme, found)
+	if err != nil {
+		return err
+	}
+	// Add it to the list of RelatedObjects if found
+	objectreferences.SetObjectReference(&instance.Status.RelatedObjects, *objectRef)
 
 	return nil
 }
@@ -217,12 +217,12 @@ func (r *ReconcileKNICluster) ensureCatalogSource(instance *kniv1alpha1.KNIClust
 	}
 
 	// Add it to the list of RelatedObjects if found
-	objectreferences.SetObjectReference(&instance.Status.RelatedObjects, corev1.ObjectReference{
-		APIVersion: found.TypeMeta.APIVersion,
-		Kind:       found.TypeMeta.Kind,
-		Namespace:  found.Namespace,
-		Name:       found.Name,
-	})
+	objectRef, err := reference.GetReference(r.scheme, found)
+	if err != nil {
+		return err
+	}
+	// Add it to the list of RelatedObjects if found
+	objectreferences.SetObjectReference(&instance.Status.RelatedObjects, *objectRef)
 
 	return nil
 }
@@ -346,6 +346,12 @@ func (r *ReconcileKNICluster) Reconcile(request reconcile.Request) (reconcile.Re
 	})
 	conditions.SetStatusCondition(&instance.Status.Conditions, conditions.Condition{
 		Type:    conditions.ConditionProgressing,
+		Status:  corev1.ConditionFalse,
+		Reason:  "ReconcileCompleted",
+		Message: "All objects created",
+	})
+	conditions.SetStatusCondition(&instance.Status.Conditions, conditions.Condition{
+		Type:    conditions.ConditionDegraded,
 		Status:  corev1.ConditionFalse,
 		Reason:  "ReconcileCompleted",
 		Message: "All objects created",

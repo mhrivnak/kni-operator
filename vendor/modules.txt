@@ -373,6 +373,7 @@ k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/pkg/apis/meta/internalversion
 # k8s.io/client-go v11.0.0+incompatible => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 k8s.io/client-go/plugin/pkg/client/auth
+k8s.io/client-go/tools/reference
 k8s.io/client-go/kubernetes/scheme
 k8s.io/client-go/tools/record
 k8s.io/client-go/discovery
@@ -388,7 +389,6 @@ k8s.io/client-go/tools/leaderelection/resourcelock
 k8s.io/client-go/dynamic
 k8s.io/client-go/util/workqueue
 k8s.io/client-go/tools/cache
-k8s.io/client-go/tools/reference
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/pkg/version
 k8s.io/client-go/plugin/pkg/client/auth/exec
