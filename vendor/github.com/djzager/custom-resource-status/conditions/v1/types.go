@@ -1,4 +1,4 @@
-package conditions
+package v1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -9,21 +9,21 @@ import (
 // reconciliation functionality.
 // +k8s:deepcopy-gen=true
 type Condition struct {
-	// type specifies the state of the operator's reconciliation functionality.
-	Type ConditionType `json:"type"`
+	Type ConditionType `json:"type" description:"type of condition ie. Available|Progressing|Degraded."`
 
-	// status of the condition, one of True, False, Unknown.
-	Status corev1.ConditionStatus `json:"status"`
+	Status corev1.ConditionStatus `json:"status" description:"status of the condition, one of True, False, Unknown"`
 
-	// lastTransitionTime is the time of the last update to the current status object.
-	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
+	// +optional
+	Reason string `json:"reason,omitempty" description:"one-word CamelCase reason for the condition's last transition"`
 
-	// reason is the reason for the condition's last transition.  Reasons are CamelCase
-	Reason string `json:"reason,omitempty"`
+	// +optional
+	Message string `json:"message,omitempty" description:"human-readable message indicating details about last transition"`
 
-	// message provides additional information about the current condition.
-	// This is only to be consumed by humans.
-	Message string `json:"message,omitempty"`
+	// +optional
+	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime" description:"last time we got an update on a given condition"`
+
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime" description:"last time the condition transit from one status to another"`
 }
 
 // ConditionType is the state of the operator's reconciliation functionality.

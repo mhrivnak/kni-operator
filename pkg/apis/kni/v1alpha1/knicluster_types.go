@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	"github.com/djzager/operator-status/conditions"
+	conditionsv1 "github.com/djzager/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -25,7 +25,7 @@ type KNIClusterStatus struct {
 	// +optional
 
 	// Conditions is a list of conditions related to operator reconciliation
-	Conditions []conditions.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []conditionsv1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 	// RelatedObjects is a list of objects that are "interesting" or related to this operator.
 	RelatedObjects []corev1.ObjectReference `json:"relatedObjects,omitempty"`
 }

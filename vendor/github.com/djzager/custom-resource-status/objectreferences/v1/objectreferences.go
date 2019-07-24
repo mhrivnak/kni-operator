@@ -1,4 +1,4 @@
-package objectreferences
+package v1
 
 import (
 	corev1 "k8s.io/api/core/v1"
