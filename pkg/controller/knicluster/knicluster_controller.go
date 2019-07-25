@@ -5,22 +5,27 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-logr/logr"
+	conditionsv1 "github.com/djzager/custom-resource-status/conditions/v1"
+	objectreferencesv1 "github.com/djzager/custom-resource-status/objectreferences/v1"
 	kniv1alpha1 "github.com/mhrivnak/kni-operator/pkg/apis/kni/v1alpha1"
 	osconfigv1 "github.com/openshift/api/config/v1"
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olm "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -124,6 +129,13 @@ func (r *ReconcileKNICluster) ensureOperatorGroup(instance *kniv1alpha1.KNIClust
 	// already exists - don't requeue
 	reqLogger.Info("OperatorGroup already exists", "OperatorGroup.Namespace", found.Namespace, "OperatorGroup.Name", found.Name)
 
+	objectRef, err := reference.GetReference(r.scheme, found)
+	if err != nil {
+		return err
+	}
+	// Add it to the list of RelatedObjects if found
+	objectreferencesv1.SetObjectReference(&instance.Status.RelatedObjects, *objectRef)
+
 	return nil
 }
 
@@ -150,6 +162,14 @@ func (r *ReconcileKNICluster) ensureSubscription(instance *kniv1alpha1.KNICluste
 
 	// already exists - don't requeue
 	reqLogger.Info("Subscription already exists", "Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
+
+	// Add it to the list of RelatedObjects if found
+	objectRef, err := reference.GetReference(r.scheme, found)
+	if err != nil {
+		return err
+	}
+	// Add it to the list of RelatedObjects if found
+	objectreferencesv1.SetObjectReference(&instance.Status.RelatedObjects, *objectRef)
 
 	return nil
 }
@@ -196,6 +216,15 @@ func (r *ReconcileKNICluster) ensureCatalogSource(instance *kniv1alpha1.KNIClust
 			return err
 		}
 	}
+
+	// Add it to the list of RelatedObjects if found
+	objectRef, err := reference.GetReference(r.scheme, found)
+	if err != nil {
+		return err
+	}
+	// Add it to the list of RelatedObjects if found
+	objectreferencesv1.SetObjectReference(&instance.Status.RelatedObjects, *objectRef)
+
 	return nil
 }
 
@@ -251,6 +280,32 @@ func (r *ReconcileKNICluster) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
+	// Add conditions if there are none
+	if instance.Status.Conditions == nil {
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:   conditionsv1.ConditionAvailable,
+			Status: corev1.ConditionFalse,
+		})
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:   conditionsv1.ConditionProgressing,
+			Status: corev1.ConditionTrue,
+		})
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:   conditionsv1.ConditionDegraded,
+			Status: corev1.ConditionFalse,
+		})
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:   conditionsv1.ConditionUpgradeable,
+			Status: corev1.ConditionUnknown,
+		})
+
+		err = r.client.Status().Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to add conditions to status")
+			return reconcile.Result{}, err
+		}
+	}
+
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !containsString(instance.ObjectMeta.Finalizers, FinalizerName) {
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, FinalizerName)
@@ -276,11 +331,50 @@ func (r *ReconcileKNICluster) Reconcile(request reconcile.Request) (reconcile.Re
 	} {
 		err = f(instance, reqLogger)
 		if err != nil {
+			reqLogger.Error(err, "Failed reconcile")
+			reqLogger.Info("Updating degraded condition")
+
+			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    conditionsv1.ConditionDegraded,
+				Status:  corev1.ConditionTrue,
+				Reason:  "ReconcileFailed",
+				Message: fmt.Sprintf("Failed reconciliation %v", err),
+			})
+
+			statusErr := r.client.Status().Update(context.TODO(), instance)
+			if statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update degraded condition")
+			}
 			return reconcile.Result{}, err
 		}
 	}
 
-	return reconcile.Result{}, nil
+	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		Type:    conditionsv1.ConditionAvailable,
+		Status:  corev1.ConditionTrue,
+		Reason:  "ReconcileCompleted",
+		Message: "All objects created",
+	})
+	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		Type:    conditionsv1.ConditionProgressing,
+		Status:  corev1.ConditionFalse,
+		Reason:  "ReconcileCompleted",
+		Message: "All objects created",
+	})
+	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		Type:    conditionsv1.ConditionDegraded,
+		Status:  corev1.ConditionFalse,
+		Reason:  "ReconcileCompleted",
+		Message: "All objects created",
+	})
+	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		Type:    conditionsv1.ConditionUpgradeable,
+		Status:  corev1.ConditionTrue,
+		Reason:  "ReconcileCompleted",
+		Message: "All objects created",
+	})
+
+	return reconcile.Result{}, r.client.Status().Update(context.TODO(), instance)
 }
 
 func newCatalogSource(version string) *olm.CatalogSource {
