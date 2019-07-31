@@ -141,25 +141,20 @@ func main() {
 
 	// Create CR if it's not there
 	client := mgr.GetClient()
-	instance := &kniv1alpha1.KNICluster{}
-	err = client.Get(context.TODO(), kniNamespacedName, instance)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			log.Info("Creating KNI Cluster Resource")
-			err = client.Create(context.TODO(), &kniv1alpha1.KNICluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kniNamespacedName.Name,
-					Namespace: kniNamespacedName.Namespace,
-				},
-			})
-			if err != nil {
-				log.Error(err, "Failed to create KNI Cluster custom resource")
-				os.Exit(1)
-			}
-		} else {
-			log.Error(err, "")
-			os.Exit(1)
-		}
+	err = client.Create(context.TODO(), &kniv1alpha1.KNICluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kniNamespacedName.Name,
+			Namespace: kniNamespacedName.Namespace,
+		},
+	})
+	switch {
+	case err == nil:
+		log.Info("Created KNICluster resource")
+	case errors.IsAlreadyExists(err):
+		log.Info("KNICluster resource already exists")
+	default:
+		log.Error(err, "Failed to create KNICluster resource")
+		os.Exit(1)
 	}
 
 	log.Info("Starting the Cmd.")
